@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from "react";
 ════════════════════════════════════════════════════════════════ */
 
 const NAV_LINKS = [
-  { label: "Home", href: "#home" },
+  { label: "Home", href: "/" },
   {
     label: "Personal", href: "#",
     sub: [
@@ -549,7 +549,7 @@ export default function WelcomePage() {
             </p>
           </Reveal>
           <Reveal from="left" delay={0.2}>
-            <a href="#"
+            <a href="/login"
               style={{
                 display: "inline-block", background: C.navy, color: C.white,
                 fontWeight: 800, fontSize: 13, letterSpacing: "0.14em", textTransform: "uppercase",
