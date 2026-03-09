@@ -3,6 +3,8 @@ import Loader from "../components/Loader";
 import { auth, db } from "../utils/firebase/firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
+import { doc, setDoc } from "firebase/firestore";
+
 
 
 // ─── Firebase error map ──────────────────────────────────────────
