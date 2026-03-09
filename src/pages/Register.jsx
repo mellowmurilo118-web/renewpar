@@ -1,5 +1,8 @@
 import { useState } from "react";
 import Loader from "../components/Loader";
+import { auth, db } from "../utils/firebase/firebase";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { useNavigate } from "react-router-dom";
 
 
 // ─── Firebase error map ──────────────────────────────────────────
@@ -206,6 +209,8 @@ function StepBar({ current, total }) {
 
 // ─── REGISTER PAGE ───────────────────────────────────────────────
 export default function Register({ onNavigateLogin }) {
+  const navigate = useNavigate()
+
   const [step, setStep]       = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState("");
@@ -294,25 +299,43 @@ export default function Register({ onNavigateLogin }) {
     if (!validateStep()) return;
     setLoading(true);
     try {
-      // ── FIREBASE: uncomment below ──
-      // import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-      // import { doc, setDoc } from "firebase/firestore";
-      //
-      // const { user } = await createUserWithEmailAndPassword(auth, email, password);
-      // await updateProfile(user, { displayName: `${firstName} ${lastName}` });
-      // await setDoc(doc(db, "users", user.uid), {
-      //   firstName, lastName, email, phone, dob, gender,
-      //   pin,  religion,
-      //   address, city, state, zipcode, country,
-      //   nextOfKin: { firstName: kinFirst, lastName: kinLast, phone: kinPhone, email: kinEmail, relationship: kinRelation, address: kinAddress },
-      //   bankSettings: { preferredCurrency: currency, accountType },
-      //   createdAt: new Date(),
-      // });
-      // window.location.href = "/dashboard";
+      const userCredentials = await createUserWithEmailAndPassword(auth, email, password)
+      const user = userCredentials.user
 
-      // ── DEMO ──
-      await new Promise(r => setTimeout(r, 2000));
-      alert(`Account created for ${firstName} ${lastName}!\n(Demo mode — connect Firebase to activate)`);
+      await setDoc(doc(db, "users", user.uid),{
+        email:user?.email,
+        firstName:firstName,
+        lastName:lastName,
+        phone:phone,
+        dob:dob,
+        gender:gender,
+        pin:pin,
+        religion:religion || "",
+        address:address,
+        city:city,
+        state:state,
+        zipcode:zipcode,
+        country:country,
+        kinFirst:kinFirst,
+        kinLast:kinLast,
+        kinRelation:kinRelation,
+        kinPhone:kinPhone,
+        kinEmail:kinEmail,
+        kinAddress:kinAddress || "",
+        currency:currency,
+        accountType:accountType,
+
+
+        
+      })
+
+
+      
+
+  
+     
+      alert(`Account created for ${firstName} ${lastName}!`);
+      navigate("/dashboard")
     } catch (err) {
       setError(friendlyError(err.code));
     } finally {

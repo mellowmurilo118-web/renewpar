@@ -1,26 +1,30 @@
-import { useState } from "react"
-import WelcomePage from "./pages/Welcomepage"
-import { BrowserRouter, Route, Routes } from "react-router-dom"
-import Login from "./pages/Login"
-import Register from "./pages/Register"
-import Dashboard from "./dashboard/Dashboard"
-
-
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { ProtectedRoute, GuestRoute } from "./components/Authguard";
+import WelcomePage from "./pages/Welcomepage";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import PinEntry from "./pages/Pinentry";
+import Dashboard from "./dashboard/Dashboard";
 
 function App() {
   return (
-    <>
     <BrowserRouter>
       <Routes>
+
+        {/* ── Public route — anyone can visit ── */}
         <Route path="/" element={<WelcomePage />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+
+        {/* ── Guest-only routes — logged-in users are redirected to /pin ── */}
+        <Route path="/login"    element={<GuestRoute><Login /></GuestRoute>} />
+        <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
+
+        {/* ── Protected routes — must be logged in ── */}
+        <Route path="/pin"       element={<ProtectedRoute><PinEntry /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+
       </Routes>
     </BrowserRouter>
-    </>
-    
-  )
+  );
 }
 
-export default App
+export default App;

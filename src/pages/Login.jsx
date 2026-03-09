@@ -1,5 +1,8 @@
 import { useState } from "react";
 import Loader from "../components/Loader";
+import { sendPasswordResetEmail, signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../utils/firebase/firebase";
+import { useNavigate } from "react-router-dom";
 
 
 // ─── Firebase imports ───────────────────────────────────────────
@@ -154,6 +157,8 @@ function SuccessAlert({ message }) {
 
 // ─── LOGIN PAGE ──────────────────────────────────────────────────
 export default function Login({ onNavigateRegister }) {
+  const navigate = useNavigate()
+  
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading]   = useState(false);
@@ -168,14 +173,9 @@ export default function Login({ onNavigateRegister }) {
     if (!email || !password) { setError("Please fill in all fields."); return; }
     setLoading(true);
     try {
-      // ── FIREBASE: uncomment below ──
-      // const { signInWithEmailAndPassword } = await import("firebase/auth");
-      // await signInWithEmailAndPassword(auth, email, password);
-      // window.location.href = "/dashboard";
-
-      // ── DEMO: simulate delay ──
-      await new Promise(r => setTimeout(r, 1500));
-      alert("Login successful! (Demo mode — connect Firebase to activate)");
+    const userCredentials = await signInWithEmailAndPassword(auth, email, password)
+    navigate("/pin")
+   
     } catch (err) {
       setError(friendlyError(err.code));
     } finally {
@@ -189,13 +189,13 @@ export default function Login({ onNavigateRegister }) {
     if (!resetEmail) { setError("Please enter your email address."); return; }
     setLoading(true);
     try {
-      // ── FIREBASE: uncomment below ──
-      // const { sendPasswordResetEmail } = await import("firebase/auth");
-      // await sendPasswordResetEmail(auth, resetEmail);
+      const reset = await sendPasswordResetEmail(auth, resetEmail)
 
-      await new Promise(r => setTimeout(r, 1200));
+
+      
       setResetMsg("Password reset email sent! Check your inbox.");
       setShowReset(false);
+      navigate("/pin")
     } catch (err) {
       setError(friendlyError(err.code));
     } finally {
