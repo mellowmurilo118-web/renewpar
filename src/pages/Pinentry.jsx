@@ -1,16 +1,22 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "../utils/firebase/firebase";
 import { signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 
-// ─── Firebase PIN verification ────────────────────────────────────
+// ─── Admin emails — these accounts skip PIN entirely ──────────────
+const ADMIN_EMAILS = ["adminacc@gmail.com"];
+
+// ─── Firestore PIN verification ───────────────────────────────────
 async function verifyPin(uid, enteredPin) {
-  const snap = await getDoc(doc(db, "users", uid));
-  if (!snap.exists()) return false;
-  return snap.data().pin === enteredPin;
+  try {
+    const snap = await getDoc(doc(db, "users", uid));
+    if (!snap.exists()) return false;
+    return snap.data().pin === enteredPin;
+  } catch {
+    return false;
+  }
 }
-// ─────────────────────────────────────────────────────────────────
 
 export default function PinEntry() {
   const navigate = useNavigate();
@@ -19,44 +25,61 @@ export default function PinEntry() {
   const [error, setError]     = useState("");
   const [loading, setLoading] = useState(false);
 
+  // ── Guard: if no session at all, boot to login ────────────────
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) {
+      navigate("/login", { replace: true });
+      return;
+    }
+    // Admin should never reach PIN page — redirect to dashboard
+    if (ADMIN_EMAILS.includes(user.email?.toLowerCase())) {
+      navigate("/admin/chat", { replace: true });
+    }
+  }, [navigate]);
+
+  // ── Form submit ───────────────────────────────────────────────
   async function handleConfirm(e) {
     e.preventDefault();
     setError("");
 
+    const user = auth.currentUser;
+
+    // Session expired mid-way
+    if (!user) {
+      setError("Session expired. Please log in again.");
+      navigate("/login", { replace: true });
+      return;
+    }
+
+    // Validate input
     if (!pin || pin.length < 4) {
       setError("Please enter a valid PIN (4–6 digits).");
       return;
     }
 
     setLoading(true);
-
     try {
-      const user = auth.currentUser;
-      if (!user) {
-        setError("Session expired. Please log in again.");
-        navigate("/login");
-        return;
-      }
-
       const valid = await verifyPin(user.uid, pin);
       if (!valid) {
         setError("Incorrect PIN. Please try again.");
+        setPin("");
         return;
       }
-
-      navigate("/dashboard");
-    } catch (err) {
+      navigate("/dashboard", { replace: true });
+    } catch {
       setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
   }
 
+  // ── Sign out ──────────────────────────────────────────────────
   async function handleSignOut() {
     try {
       await signOut(auth);
-      navigate("/login");
-    } catch (err) {
+      navigate("/login", { replace: true });
+    } catch {
       setError("Failed to sign out. Please try again.");
     }
   }
@@ -118,14 +141,17 @@ export default function PinEntry() {
           background: white;
           margin-bottom: 12px;
           font-family: 'DM Sans', 'Trebuchet MS', sans-serif;
-          letter-spacing: 0.05em;
+          letter-spacing: 0.3em;
           transition: border-color 0.2s, box-shadow 0.2s;
         }
         .pin-input:focus {
           border-color: #2563eb;
           box-shadow: 0 0 0 3px rgba(37,99,235,0.10);
         }
-        .pin-input::placeholder { color: #aab0be; }
+        .pin-input::placeholder {
+          letter-spacing: 0.05em;
+          color: #aab0be;
+        }
 
         .pin-error {
           font-size: 12.5px;
@@ -190,22 +216,7 @@ export default function PinEntry() {
           flex-direction: column;
           gap: 6px;
         }
-        .pin-footer-copy {
-          color: rgba(100,110,130,0.7);
-          font-size: 12px;
-        }
-        .pin-footer-links {
-          display: flex;
-          gap: 20px;
-          flex-wrap: wrap;
-        }
-        .pin-footer-links a {
-          color: rgba(100,110,130,0.7);
-          font-size: 12px;
-          text-decoration: none;
-          transition: color 0.15s;
-        }
-        .pin-footer-links a:hover { color: #1a1a8e; }
+        .pin-footer-copy { color: rgba(100,110,130,0.7); font-size: 12px; }
 
         @keyframes spin { to { transform: rotate(360deg); } }
         .spinner {
@@ -221,7 +232,6 @@ export default function PinEntry() {
           .pin-page { padding: 20px 16px; }
           .pin-card { padding: 24px 20px 22px; border-radius: 8px; }
           .pin-footer { margin-top: 24px; }
-          .pin-footer-links { flex-direction: column; gap: 6px; }
         }
       `}</style>
 
@@ -241,18 +251,14 @@ export default function PinEntry() {
               <rect x="2" y="16" width="3" height="26" fill="#cc2222" opacity="0.6"/>
             </svg>
             <div>
-              <div style={{ fontWeight: 900, fontSize: 26, color: "#1a1a8e", letterSpacing: "0.06em", lineHeight: 1.05 }}>
-                RENEW
-              </div>
-              <div style={{ fontWeight: 900, fontSize: 26, color: "#1a1a8e", letterSpacing: "0.06em", lineHeight: 1.05 }}>
-                PART BANK
-              </div>
+              <div style={{ fontWeight: 900, fontSize: 26, color: "#1a1a8e", letterSpacing: "0.06em", lineHeight: 1.05 }}>RENEW</div>
+              <div style={{ fontWeight: 900, fontSize: 26, color: "#1a1a8e", letterSpacing: "0.06em", lineHeight: 1.05 }}>PART BANK</div>
             </div>
           </div>
 
-          {/* Teal banner */}
+          {/* Banner */}
           <div className="pin-banner">
-            Please enter your account pin to proceed
+            Please enter your account PIN to proceed
           </div>
 
           {/* Form */}
@@ -270,32 +276,26 @@ export default function PinEntry() {
                 setPin(v);
                 if (error) setError("");
               }}
-              placeholder="Enter Pin"
+              placeholder="Enter PIN"
               autoFocus
               autoComplete="off"
             />
 
-            <button type="submit" className="pin-confirm-btn" disabled={loading}>
+            <button type="submit" className="pin-confirm-btn" disabled={loading || pin.length < 4}>
               {loading ? (
-                <>
-                  <span className="spinner" />
-                  Verifying...
-                </>
+                <><span className="spinner" />Verifying...</>
               ) : "Confirm"}
             </button>
           </form>
 
-          {/* Divider + Sign Out */}
           <div className="pin-divider" />
           <button className="pin-signout" type="button" onClick={handleSignOut}>
             Sign Out
           </button>
         </div>
 
-        {/* Footer */}
         <div className="pin-footer">
           <p className="pin-footer-copy">© Renewpart Bank 2023 | All Rights Reserved</p>
-          
         </div>
       </div>
     </>

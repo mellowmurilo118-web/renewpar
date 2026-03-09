@@ -1,16 +1,24 @@
 // ─────────────────────────────────────────────────────────────────
 // useAdmin.js
-// Reads the `isAdmin` field from Firestore users/{uid}
-// Firestore rule: users/{uid}.isAdmin === true
-//
-// To make a user admin, set in Firestore:
-//   users/{uid} → { isAdmin: true }
+// Admin check — email whitelist only (no Firestore read).
+// Add emails to ADMIN_EMAILS to grant admin access.
+// For regular users, isAdmin is always false.
 // ─────────────────────────────────────────────────────────────────
 
 import { useState, useEffect } from "react";
-import { doc, onSnapshot } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth, db } from "../../utils/firebase/firebase";
+import { auth } from "../../utils/firebase/firebase";
+
+// ── Admin email whitelist ─────────────────────────────────────────
+const ADMIN_EMAILS = [
+  "adminacc@gmail.com",
+];
+
+function isAdminEmail(email) {
+  if (!email) return false;
+  return ADMIN_EMAILS.includes(email.trim().toLowerCase());
+}
+// ─────────────────────────────────────────────────────────────────
 
 export function useAdmin() {
   const [isAdmin,  setIsAdmin]  = useState(false);
@@ -18,7 +26,6 @@ export function useAdmin() {
   const [user,     setUser]     = useState(null);
 
   useEffect(() => {
-    // Step 1 — wait for Firebase Auth to resolve
     const unsubAuth = onAuthStateChanged(auth, (firebaseUser) => {
       if (!firebaseUser) {
         setUser(null);
@@ -28,28 +35,8 @@ export function useAdmin() {
       }
 
       setUser(firebaseUser);
-
-      // Step 2 — subscribe to users/{uid} doc for isAdmin field
-      const userRef = doc(db, "users", firebaseUser.uid);
-      const unsubDoc = onSnapshot(
-        userRef,
-        (snap) => {
-          if (snap.exists()) {
-            setIsAdmin(snap.data()?.isAdmin === true);
-          } else {
-            setIsAdmin(false);
-          }
-          setChecking(false);
-        },
-        () => {
-          // Permission error or no doc — not admin
-          setIsAdmin(false);
-          setChecking(false);
-        }
-      );
-
-      // Cleanup doc listener when auth changes
-      return () => unsubDoc();
+      setIsAdmin(isAdminEmail(firebaseUser.email));
+      setChecking(false);
     });
 
     return () => unsubAuth();

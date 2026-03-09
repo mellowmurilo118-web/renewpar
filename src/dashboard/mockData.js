@@ -1,15 +1,36 @@
 // ─────────────────────────────────────────────────────────────────
-// mockData.js  —  Renew Part Bank Dashboard Mock Data
-// Replace with Firebase reads when ready
+// mockData.js  —  Renew Part Bank Dashboard Data
+//
+// DEMO MODE:
+//   If the logged-in user's email matches DEMO_EMAIL, all dashboard
+//   data is served from the mock objects below — no Firestore reads.
+//
+//   For every other email, useDashboardData() returns nulls and you
+//   populate from Firestore (or your own data layer).
+//
+// ── To change the demo account, edit this one line: ──────────────
+export const DEMO_EMAIL = "ellianawilson98@gmail.com";
 // ─────────────────────────────────────────────────────────────────
 
-export const CURRENT_USER = {
+import { auth } from "../utils/firebase/firebase";
+
+// ─── Check if current user is the demo account ───────────────────
+export function isDemoUser() {
+  const email = auth.currentUser?.email?.toLowerCase();
+  return email === DEMO_EMAIL.toLowerCase();
+}
+
+// ─────────────────────────────────────────────────────────────────
+// MOCK DATA OBJECTS
+// ─────────────────────────────────────────────────────────────────
+
+const MOCK_USER = {
   uid: "usr_001",
   firstName: "Elliana",
   lastName: "Wilson",
   email: "elliana.wilson@email.com",
   phone: "+1 (555) 204-8811",
-  avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=120&q=80",
+  avatar: "/profile.jpg",
   dob: "1990-04-15",
   gender: "Female",
   religion: "Christianity",
@@ -19,10 +40,10 @@ export const CURRENT_USER = {
   zipcode: "10021",
   country: "United States",
   joinDate: "2018-09-20",
-  kycStatus: "verified",   // "verified" | "pending" | "unverified"
+  kycStatus: "verified",
 };
 
-export const ACCOUNT = {
+const MOCK_ACCOUNT = {
   id: "acc_001",
   accountNumber: "1042054190",
   routingNumber: "021000021",
@@ -31,15 +52,13 @@ export const ACCOUNT = {
   balance: 10200000.00,
   btcBalance: 0.0000000,
   btcUsd: 0.00,
-  status: "active",   // "active" | "suspended" | "closed"
+  status: "active",
   iban: "US29NWBK60161331926819",
   swift: "RENEWUS33",
   openedDate: "2018-09-20",
 };
 
-export const TRANSACTIONS = [
-
-  // ── 2019 ─────────────────────────────────────────────────────────
+const MOCK_TRANSACTIONS = [
   {
     id: "txn_001",
     account: "1042054190",
@@ -68,8 +87,6 @@ export const TRANSACTIONS = [
     recipient: "Con Edison",
     recipientBank: "N/A",
   },
-
-  // ── 2020 ─────────────────────────────────────────────────────────
   {
     id: "txn_003",
     account: "1042054190",
@@ -98,8 +115,6 @@ export const TRANSACTIONS = [
     recipient: "ATM #4421",
     recipientBank: "Renew Part Bank",
   },
-
-  // ── 2021 ─────────────────────────────────────────────────────────
   {
     id: "txn_005",
     account: "1042054190",
@@ -114,8 +129,6 @@ export const TRANSACTIONS = [
     recipient: "Self",
     recipientBank: "JPMorgan Chase",
   },
-
-  // ── 2022 ─────────────────────────────────────────────────────────
   {
     id: "txn_006",
     account: "1042054190",
@@ -144,8 +157,6 @@ export const TRANSACTIONS = [
     recipient: "James Whitfield",
     recipientBank: "Chase Bank",
   },
-
-  // ── 2023 ─────────────────────────────────────────────────────────
   {
     id: "txn_008",
     account: "1042054190",
@@ -160,15 +171,9 @@ export const TRANSACTIONS = [
     recipient: "Self",
     recipientBank: "Bank of America",
   },
-
 ];
 
-// ── Running balance verification (dev check) ──────────────────────
-// Credits : 5,000,000 + 2,500,000 + 1,800,000 + 750,000 + 170,730.50 = 10,220,730.50
-// Debits  :      230.50 +     500 +  20,000                           =     20,730.50
-// Balance : 10,220,730.50 − 20,730.50                                 = 10,200,000.00 ✓
-
-export const CARDS = [
+const MOCK_CARDS = [
   {
     id: "card_001",
     type: "Visa",
@@ -219,7 +224,7 @@ export const CARDS = [
   },
 ];
 
-export const LOANS = [
+const MOCK_LOANS = [
   {
     id: "loan_001",
     type: "Personal Loan",
@@ -246,7 +251,7 @@ export const LOANS = [
   },
 ];
 
-export const NOTIFICATIONS = [
+const MOCK_NOTIFICATIONS = [
   {
     id: "ntf_001",
     type: "credit",
@@ -281,60 +286,177 @@ export const NOTIFICATIONS = [
   },
 ];
 
+// ─────────────────────────────────────────────────────────────────
+// NULL DEFAULTS — returned for non-demo users until Firestore loads
+// ─────────────────────────────────────────────────────────────────
+const NULL_USER = {
+  uid: null,
+  firstName: "",
+  lastName: "",
+  email: "",
+  phone: "",
+  avatar: "",
+  dob: "",
+  gender: "",
+  religion: "",
+  address: "",
+  city: "",
+  state: "",
+  zipcode: "",
+  country: "",
+  joinDate: "",
+  kycStatus: "pending",
+};
+
+const NULL_ACCOUNT = {
+  id: null,
+  accountNumber: "––––––––",
+  routingNumber: "–––––––––",
+  type: "Personal Checking",
+  currency: "USD",
+  balance: 0.00,
+  btcBalance: 0.00,
+  btcUsd: 0.00,
+  status: "active",
+  iban: "––––––––––––––––",
+  swift: "––––––––",
+  openedDate: "",
+};
+
+// ─────────────────────────────────────────────────────────────────
+// useDashboardData()
+// Call this hook in any dashboard component that needs data.
+//
+//   const { user, account, transactions, cards, loans, notifications } = useDashboardData();
+//
+// Demo email  → returns mock data instantly, no loading state.
+// Other email → returns nulls; swap in your Firestore logic below.
+// ─────────────────────────────────────────────────────────────────
+import { useState, useEffect } from "react";
+import { doc, getDoc, collection, getDocs, orderBy, query } from "firebase/firestore";
+import { db } from "../utils/firebase/firebase";
+
+export function useDashboardData() {
+  const demo = isDemoUser();
+
+  const [user,          setUser]          = useState(demo ? MOCK_USER          : NULL_USER);
+  const [account,       setAccount]       = useState(demo ? MOCK_ACCOUNT       : NULL_ACCOUNT);
+  const [transactions,  setTransactions]  = useState(demo ? MOCK_TRANSACTIONS  : []);
+  const [cards,         setCards]         = useState(demo ? MOCK_CARDS         : []);
+  const [loans,         setLoans]         = useState(demo ? MOCK_LOANS         : []);
+  const [notifications, setNotifications] = useState(demo ? MOCK_NOTIFICATIONS : []);
+  const [loading,       setLoading]       = useState(!demo);
+
+  useEffect(() => {
+    // Demo user — data already set above, nothing to fetch
+    if (demo) return;
+
+    const uid = auth.currentUser?.uid;
+    if (!uid) { setLoading(false); return; }
+
+    // ── Fetch real user data from Firestore ────────────────────
+    // Uncomment and adapt these reads when your Firestore schema is ready:
+    //
+    // (async () => {
+    //   try {
+    //     const userSnap = await getDoc(doc(db, "users", uid));
+    //     if (userSnap.exists()) setUser({ uid, ...userSnap.data() });
+    //
+    //     const accSnap = await getDoc(doc(db, "accounts", uid));
+    //     if (accSnap.exists()) setAccount(accSnap.data());
+    //
+    //     const txSnap = await getDocs(
+    //       query(collection(db, "accounts", uid, "transactions"), orderBy("date", "desc"))
+    //     );
+    //     setTransactions(txSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+    //
+    //     // cards, loans, notifications — same pattern
+    //   } catch (err) {
+    //     console.error("Firestore load error:", err);
+    //   } finally {
+    //     setLoading(false);
+    //   }
+    // })();
+
+    // ── Placeholder until Firestore reads are wired up ─────────
+    setLoading(false);
+  }, [demo]);
+
+  return { user, account, transactions, cards, loans, notifications, loading, isDemo: demo };
+}
+
+// ─────────────────────────────────────────────────────────────────
+// STATIC EXPORTS (nav, quick actions, helpers)
+// These are UI config — same for all users
+// ─────────────────────────────────────────────────────────────────
+
 export const QUICK_ACTIONS = [
-  { id: "account-info", label: "Account Info",  icon: "account" },
-  { id: "transfer",     label: "Transfer",       icon: "transfer" },
-  { id: "card",         label: "Card",           icon: "card" },
+  { id: "account-info", label: "Account Info", icon: "account"   },
+  { id: "transfer",     label: "Transfer",      icon: "transfer"  },
+  { id: "card",         label: "Card",           icon: "card"      },
   { id: "statement",    label: "Statement",      icon: "statement" },
 ];
 
 export const NAV_ITEMS = [
-  { id: "dashboard",  label: "Dashboard",  icon: "dashboard",  path: "dashboard" },
+  { id: "dashboard", label: "Dashboard", icon: "dashboard", path: "dashboard" },
   {
     id: "security", label: "Security", icon: "security", path: "security",
     sub: [
       { id: "change-password", label: "Change Password", path: "change-password" },
-      { id: "two-factor",      label: "2FA Settings",    path: "two-factor" },
+      { id: "two-factor",      label: "2FA Settings",    path: "two-factor"      },
     ],
   },
   {
     id: "transfer", label: "Transfer", icon: "transfer", path: "transfer",
     sub: [
-      { id: "send",    label: "Send Money",    path: "send" },
-      { id: "receive", label: "Receive Money", path: "receive" },
+      { id: "send",    label: "Send Money",       path: "send"             },
+      { id: "receive", label: "Receive Money",    path: "receive"          },
       { id: "history", label: "Transfer History", path: "transfer-history" },
     ],
   },
   {
     id: "monetary", label: "Monetary", icon: "monetary", path: "monetary",
     sub: [
-      { id: "deposit",    label: "Deposit",    path: "deposit" },
+      { id: "deposit",    label: "Deposit",    path: "deposit"    },
       { id: "withdrawal", label: "Withdrawal", path: "withdrawal" },
     ],
   },
   {
     id: "loan", label: "Loan", icon: "loan", path: "loan",
     sub: [
-      { id: "my-loans",  label: "My Loans",   path: "my-loans" },
-      { id: "apply",     label: "Apply",       path: "apply-loan" },
+      { id: "my-loans", label: "My Loans", path: "my-loans"  },
+      { id: "apply",    label: "Apply",    path: "apply-loan" },
     ],
   },
   {
     id: "account", label: "Account", icon: "account", path: "account",
     sub: [
-      { id: "profile",    label: "Profile",    path: "profile" },
-      { id: "card",       label: "Cards",      path: "cards" },
-      { id: "statement",  label: "Statement",  path: "statement" },
-      { id: "settings",   label: "Settings",   path: "settings" },
+      { id: "profile",   label: "Profile",   path: "profile"   },
+      { id: "card",      label: "Cards",     path: "cards"     },
+      { id: "statement", label: "Statement", path: "statement" },
+      { id: "settings",  label: "Settings",  path: "settings"  },
     ],
   },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────
 export function fmt(amount, currency = "USD") {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency, minimumFractionDigits: 2 }).format(amount);
+  return new Intl.NumberFormat("en-US", {
+    style: "currency", currency, minimumFractionDigits: 2,
+  }).format(amount);
 }
 
 export function fmtDate(dateStr) {
-  return new Date(dateStr).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+  return new Date(dateStr).toLocaleDateString("en-US", {
+    year: "numeric", month: "short", day: "numeric",
+  });
 }
+
+// Legacy named exports — keep for any component still using the old pattern
+// These always return mock data; migrate components to useDashboardData() over time
+export const CURRENT_USER   = MOCK_USER;
+export const ACCOUNT        = MOCK_ACCOUNT;
+export const TRANSACTIONS   = MOCK_TRANSACTIONS;
+export const CARDS          = MOCK_CARDS;
+export const LOANS          = MOCK_LOANS;
+export const NOTIFICATIONS  = MOCK_NOTIFICATIONS;
