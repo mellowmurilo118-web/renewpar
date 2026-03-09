@@ -5,6 +5,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import PinEntry from "./pages/Pinentry";
 import Dashboard from "./dashboard/Dashboard";
+import AdminChat from "./components/chat/Adninchat";
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
         {/* ── Protected routes — must be logged in ── */}
         <Route path="/pin"       element={<ProtectedRoute><PinEntry /></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/admin/chat" element={<AdminChat />} />
 
       </Routes>
     </BrowserRouter>

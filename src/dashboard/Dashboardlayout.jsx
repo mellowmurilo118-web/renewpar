@@ -1,3 +1,4 @@
+import ChatLauncher from "../components/chat/Chatlauncher.jsx";
 import { useState, useRef, useEffect } from "react";
 import { NAV_ITEMS, CURRENT_USER, NOTIFICATIONS } from "./mockData.js";
 
@@ -278,6 +279,9 @@ export default function DashboardLayout({ activePage, onNavigate, children }) {
           {children}
         </main>
       </div>
+
+      {/* Chat launcher — auto-detects admin vs user */}
+      <ChatLauncher />
     </div>
   );
 }
