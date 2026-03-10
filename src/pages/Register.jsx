@@ -336,7 +336,7 @@ export default function Register({ onNavigateLogin }) {
 
   
      
-      alert(`Account created for ${firstName} ${lastName}!`);
+      
       navigate("/dashboard")
     } catch (err) {
       setError(friendlyError(err.code));
