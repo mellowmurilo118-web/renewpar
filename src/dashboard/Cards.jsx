@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CARDS, CURRENT_USER, fmt } from "./mockData.js";
+import { fmt } from "./mockData.js";
 
 function Card3D({ card, flipped, onClick }) {
   const [bg1, bg2] = card.color;
@@ -103,14 +103,14 @@ function Card3D({ card, flipped, onClick }) {
   );
 }
 
-export default function CardsPage({ onNavigate }) {
+export default function CardsPage({ onNavigate, cards, user }) {
   const [selected, setSelected] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [freezeStates, setFreezeStates] = useState(
-    Object.fromEntries(CARDS.map(c => [c.id, c.status === "frozen"]))
+    Object.fromEntries((cards||[]).map(c => [c.id, c.status === "frozen"]))
   );
 
-  const card = CARDS[selected];
+  const card = (cards||[])[selected] || cards[0];
   const isFrozen = freezeStates[card.id];
 
   function toggleFreeze() {
@@ -128,7 +128,7 @@ export default function CardsPage({ onNavigate }) {
 
       {/* Card selector tabs */}
       <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
-        {CARDS.map((c, i) => (
+        {(cards||[]).map((c, i) => (
           <button key={c.id} onClick={() => { setSelected(i); setFlipped(false); }}
             className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-bold transition-colors border ${selected === i ? "bg-[#1a1a5e] text-white border-[#1a1a5e]" : "bg-white text-gray-500 border-gray-200 hover:border-[#1a1a5e]"}`}>
             {c.label}

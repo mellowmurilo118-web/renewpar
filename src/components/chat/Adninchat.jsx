@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useAdminChat } from "./useChat.js";
+import { signOut } from "firebase/auth";
+import { auth } from "../../utils/firebase/firebase";
 
 // ─── Helpers ──────────────────────────────────────────────────────
 function fmtTime(ts) {
@@ -157,6 +159,10 @@ export default function AdminChat() {
   const bottomRef = useRef(null);
   const inputRef  = useRef(null);
 
+  async function handleLogout() {
+    try { await signOut(auth); window.location.href = "/login"; } catch (e) { console.error(e); }
+  }
+
   const { conversations, messages, sending, loadingMsgs, sendMessage, setStatus, totalUnread } = useAdminChat(selectedId);
 
   const selectedConv = conversations.find(c => c.id === selectedId);
@@ -214,9 +220,25 @@ export default function AdminChat() {
                 </p>
               )}
             </div>
-            <span style={{ background: "#eff6ff", color: "#2563eb", fontWeight: 800, fontSize: 12, padding: "3px 10px", borderRadius: 20 }}>
-              {conversations.length}
-            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ background: "#eff6ff", color: "#2563eb", fontWeight: 800, fontSize: 12, padding: "3px 10px", borderRadius: 20 }}>
+                {conversations.length}
+              </span>
+              <button
+                onClick={handleLogout}
+                title="Logout"
+                style={{ display: "flex", alignItems: "center", gap: 6, background: "#fff1f2", border: "1.5px solid #fecdd3", borderRadius: 8, padding: "5px 10px", cursor: "pointer", color: "#dc2626", fontWeight: 700, fontSize: 12, fontFamily: "'DM Sans','Trebuchet MS',sans-serif", transition: "background 0.15s" }}
+                onMouseEnter={e => e.currentTarget.style.background = "#ffe4e6"}
+                onMouseLeave={e => e.currentTarget.style.background = "#fff1f2"}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+                  <polyline points="16 17 21 12 16 7"/>
+                  <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                Logout
+              </button>
+            </div>
           </div>
           {/* Search */}
           <div style={{ position: "relative" }}>

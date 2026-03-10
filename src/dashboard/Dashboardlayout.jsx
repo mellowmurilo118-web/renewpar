@@ -1,8 +1,8 @@
 import ChatLauncher from "../components/chat/Chatlauncher.jsx";
 import { useState, useRef, useEffect } from "react";
-import { NAV_ITEMS, CURRENT_USER, NOTIFICATIONS } from "./mockData.js";
-import { auth } from "../utils/firebase/firebase.js";
+import { NAV_ITEMS } from "./mockData.js";
 import { signOut } from "firebase/auth";
+import { auth } from "../utils/firebase/firebase.js";
 
 // ─── Icons ───────────────────────────────────────────────────────
 const Icon = ({ name, size = 20, color = "currentColor" }) => {
@@ -149,9 +149,9 @@ function Sidebar({ activePage, onNavigate, collapsed, onClose }) {
 }
 
 // ─── Topbar ───────────────────────────────────────────────────────
-function Topbar({ onMenuClick, onNavigate }) {
+function Topbar({ onMenuClick, onNavigate, user, notifications }) {
   const [showNotifs, setShowNotifs] = useState(false);
-  const [notifs, setNotifs] = useState(NOTIFICATIONS);
+  const [notifs, setNotifs] = useState(notifications || []);
   const unread = notifs.filter(n => !n.read).length;
   const ref = useRef(null);
 
@@ -231,8 +231,8 @@ function Topbar({ onMenuClick, onNavigate }) {
         <button onClick={() => onNavigate("profile")} className="flex items-center gap-2 group">
           <div className="relative">
             <img
-              src={CURRENT_USER.avatar}
-              alt={CURRENT_USER.firstName}
+              src={user?.avatar}
+              alt={user?.firstName}
               className="w-9 h-9 rounded-full object-cover border-2 border-gray-200 group-hover:border-[#1a1a5e] transition-colors"
               onError={e => { e.target.style.display = "none"; }}
             />
@@ -245,7 +245,7 @@ function Topbar({ onMenuClick, onNavigate }) {
 }
 
 // ─── DashboardLayout ──────────────────────────────────────────────
-export default function DashboardLayout({ activePage, onNavigate, children }) {
+export default function DashboardLayout({ activePage, onNavigate, children, data }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
@@ -276,7 +276,7 @@ export default function DashboardLayout({ activePage, onNavigate, children }) {
 
       {/* Main */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar onMenuClick={() => setSidebarOpen(true)} onNavigate={onNavigate} />
+        <Topbar onMenuClick={() => setSidebarOpen(true)} onNavigate={onNavigate} user={data?.user} notifications={data?.notifications || []} />
         <main className="flex-1 overflow-y-auto">
           {children}
         </main>

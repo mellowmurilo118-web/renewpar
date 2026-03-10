@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CURRENT_USER, ACCOUNT, TRANSACTIONS, fmt, fmtDate } from "./mockData.js";
+import { fmt, fmtDate } from "./mockData.js";
 
 function PageWrap({ title, subtitle, children }) {
   return (
@@ -29,9 +29,9 @@ function InputField({ label, type = "text", value, onChange, placeholder, readOn
 }
 
 // ─── PROFILE ──────────────────────────────────────────────────────
-export function Profile() {
+export function Profile({ user, account }) {
   const [edit, setEdit] = useState(false);
-  const [form, setForm] = useState({ ...CURRENT_USER });
+  const [form, setForm] = useState({ ...user });
   const [saved, setSaved] = useState(false);
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
@@ -55,15 +55,15 @@ export function Profile() {
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-4">
         <div className="flex items-center gap-5">
           <div className="relative">
-            <img src={CURRENT_USER.avatar} alt="avatar" className="w-20 h-20 rounded-full object-cover border-4 border-gray-100"
+            <img src={user.avatar} alt="avatar" className="w-20 h-20 rounded-full object-cover border-4 border-gray-100"
               onError={e => { e.target.style.display="none"; }} />
             <div className="absolute bottom-0 right-0 w-6 h-6 bg-[#1a1a5e] rounded-full flex items-center justify-center border-2 border-white cursor-pointer">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
             </div>
           </div>
           <div>
-            <p className="font-black text-gray-800 text-lg">{CURRENT_USER.firstName} {CURRENT_USER.lastName}</p>
-            <p className="text-gray-400 text-sm">{CURRENT_USER.email}</p>
+            <p className="font-black text-gray-800 text-lg">{user.firstName} {user.lastName}</p>
+            <p className="text-gray-400 text-sm">{user.email}</p>
             <div className="flex items-center gap-2 mt-2">
               <span className="inline-flex items-center gap-1.5 text-xs font-bold text-green-600 bg-green-100 px-3 py-1 rounded-full">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
@@ -112,13 +112,13 @@ export function Profile() {
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
         <h3 className="font-black text-gray-800 mb-5">Account Information</h3>
         {[
-          ["Account Number", ACCOUNT.accountNumber],
-          ["Account Type", ACCOUNT.type],
-          ["Routing Number", ACCOUNT.routingNumber],
-          ["SWIFT", ACCOUNT.swift],
-          ["IBAN", ACCOUNT.iban],
-          ["Opened", fmtDate(ACCOUNT.openedDate)],
-          ["Status", ACCOUNT.status.toUpperCase()],
+          ["Account Number", account.accountNumber],
+          ["Account Type", account.type],
+          ["Routing Number", account.routingNumber],
+          ["SWIFT", account.swift],
+          ["IBAN", account.iban],
+          ["Opened", fmtDate(account.openedDate)],
+          ["Status", account.status.toUpperCase()],
         ].map(([k, v]) => (
           <div key={k} className="flex justify-between py-3 border-b border-gray-100 last:border-0">
             <span className="text-xs text-gray-400 font-semibold">{k}</span>
@@ -131,16 +131,16 @@ export function Profile() {
 }
 
 // ─── ACCOUNT INFO (quick action from dashboard) ───────────────────
-export function AccountInfo() {
+export function AccountInfo({ user, account }) {
   return <Profile />;
 }
 
 // ─── STATEMENT ────────────────────────────────────────────────────
-export function Statement() {
+export function Statement({ user, account, transactions }) {
   const [month, setMonth] = useState("all");
-  const months = [...new Set(TRANSACTIONS.map(t => t.date.slice(0, 7)))];
+  const months = [...new Set(transactions.map(t => t.date.slice(0, 7)))];
 
-  const filtered = month === "all" ? TRANSACTIONS : TRANSACTIONS.filter(t => t.date.startsWith(month));
+  const filtered = month === "all" ? transactions : transactions.filter(t => t.date.startsWith(month));
   const totalCredit = filtered.filter(t => t.type === "credit").reduce((s, t) => s + t.amount, 0);
   const totalDebit  = filtered.filter(t => t.type === "debit").reduce((s, t) => s + Math.abs(t.amount), 0);
 
@@ -177,7 +177,7 @@ export function Statement() {
         {/* Header */}
         <div className="bg-[#1a1a5e] px-5 py-4">
           <p className="text-white font-black text-sm">Renew Part Bank — Account Statement</p>
-          <p className="text-white/50 text-xs">{CURRENT_USER.firstName} {CURRENT_USER.lastName} · {ACCOUNT.accountNumber}</p>
+          <p className="text-white/50 text-xs">{user.firstName} {user.lastName} · {account.accountNumber}</p>
         </div>
         {/* Table header */}
         <div className="grid grid-cols-4 gap-2 px-5 py-3 bg-gray-50 border-b border-gray-100">
@@ -209,7 +209,7 @@ export function Statement() {
 }
 
 // ─── SETTINGS ─────────────────────────────────────────────────────
-export function Settings() {
+export function Settings({ user, account }) {
   const [settings, setSettings] = useState({
     emailNotif:   true,
     smsNotif:     true,
@@ -304,7 +304,7 @@ export function Settings() {
 }
 
 // ─── SECURITY ────────────────────────────────────────────────────
-export function Security() {
+export function Security({ user }) {
   const [form, setForm] = useState({ current: "", newPwd: "", confirm: "" });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -345,7 +345,7 @@ export function Security() {
           ["Login Device", "Chrome on Windows"],
           ["2FA Status", "Disabled"],
           ["KYC Status", "Verified ✓"],
-          ["Account Created", fmtDate(CURRENT_USER.joinDate)],
+          ["Account Created", fmtDate(user.joinDate)],
         ].map(([k, v]) => (
           <div key={k} className="flex justify-between py-3 border-b border-gray-100 last:border-0">
             <span className="text-xs text-gray-400 font-semibold">{k}</span>

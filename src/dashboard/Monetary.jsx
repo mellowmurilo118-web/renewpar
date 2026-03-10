@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ACCOUNT, fmt } from "./mockData.js";
+import { fmt } from "./mockData.js";
 
 // ─────────────────────────────────────────────────────────────────
 // Set to true  → withdrawal form is replaced with the error + chat CTA
@@ -203,7 +203,7 @@ const DEPOSIT_METHODS = [
 ];
 
 // ─── DEPOSIT ─────────────────────────────────────────────────────
-export function Deposit() {
+export function Deposit({ account }) {
   const [form, setForm] = useState({ method: "", amount: "", reference: "" });
   const [success, setSuccess] = useState("");
   const [error, setError]     = useState("");
@@ -222,8 +222,8 @@ export function Deposit() {
     <PageWrap title="Deposit Funds" subtitle="Add money to your account">
       <div className="rounded-2xl p-5 mb-6 text-white" style={{ background: "linear-gradient(135deg,#1a1a5e,#2a3aa0)" }}>
         <p className="text-white/60 text-xs mb-1">Current Balance</p>
-        <p className="text-3xl font-black">{fmt(ACCOUNT.balance)}</p>
-        <p className="text-white/40 text-xs mt-1">Account: {ACCOUNT.accountNumber}</p>
+        <p className="text-3xl font-black">{fmt(account.balance)}</p>
+        <p className="text-white/40 text-xs mt-1">Account: {account.accountNumber}</p>
       </div>
 
       <SuccessBanner msg={success} />
@@ -241,9 +241,9 @@ export function Deposit() {
               {[
                 ["Bank Name",    "Renew Part Bank"    ],
                 ["Account Name","Elliana Wilson"      ],
-                ["Account No.", ACCOUNT.accountNumber ],
-                ["Routing No.", ACCOUNT.routingNumber ],
-                ["SWIFT",       ACCOUNT.swift         ],
+                ["Account No.", account.accountNumber ],
+                ["Routing No.", account.routingNumber ],
+                ["SWIFT",       account.swift         ],
               ].map(([k, v]) => (
                 <div key={k} className="flex justify-between py-1.5 border-b border-blue-100 last:border-0">
                   <span className="text-xs text-blue-400 font-semibold">{k}</span>
@@ -263,7 +263,7 @@ export function Deposit() {
 }
 
 // ─── WITHDRAWAL ───────────────────────────────────────────────────
-export function Withdrawal() {
+export function Withdrawal({ account }) {
   const [form, setForm]       = useState({ method: "", amount: "", bankName: "", accountNum: "", pin: "" });
   const [success, setSuccess] = useState("");
   const [error, setError]     = useState("");
@@ -281,7 +281,7 @@ export function Withdrawal() {
     setError("");
     if (!form.method || !form.amount) return setError("Please fill all required fields.");
     if (isNaN(form.amount) || Number(form.amount) <= 0) return setError("Enter a valid amount.");
-    if (Number(form.amount) > ACCOUNT.balance) return setError("Insufficient funds in your account.");
+    if (Number(form.amount) > account.balance) return setError("Insufficient funds in your account.");
     if (!form.pin || form.pin.length < 4) return setError("Please enter your transaction PIN.");
     setSuccess(`Withdrawal of ${fmt(Number(form.amount))} processed! Please allow 1-2 business days.`);
     setForm({ method: "", amount: "", bankName: "", accountNum: "", pin: "" });
@@ -292,8 +292,8 @@ export function Withdrawal() {
       {/* Balance card */}
       <div className="rounded-2xl p-5 mb-6 text-white" style={{ background: "linear-gradient(135deg,#1a1a5e,#2a3aa0)" }}>
         <p className="text-white/60 text-xs mb-1">Available Balance</p>
-        <p className="text-3xl font-black">{fmt(ACCOUNT.balance)}</p>
-        <p className="text-white/40 text-xs mt-1">Account: {ACCOUNT.accountNumber}</p>
+        <p className="text-3xl font-black">{fmt(account.balance)}</p>
+        <p className="text-white/40 text-xs mt-1">Account: {account.accountNumber}</p>
       </div>
 
       {/* BLOCKED — replace form with error card */}
@@ -307,7 +307,7 @@ export function Withdrawal() {
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
             <form onSubmit={handleSubmit}>
               <InputField label="Withdrawal Method" value={form.method} onChange={set("method")} options={WITHDRAW_METHODS} required />
-              <InputField label="Amount (USD)" type="number" value={form.amount} onChange={set("amount")} placeholder="0.00" required prefix="$" hint={`Max: ${fmt(ACCOUNT.balance)}`} />
+              <InputField label="Amount (USD)" type="number" value={form.amount} onChange={set("amount")} placeholder="0.00" required prefix="$" hint={`Max: ${fmt(account.balance)}`} />
 
               {form.method === "bank-transfer" && (
                 <>

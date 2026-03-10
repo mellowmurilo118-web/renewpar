@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LOANS, fmt, fmtDate } from "./mockData.js";
+import { fmt, fmtDate } from "./mockData.js";
 
 function PageWrap({ title, subtitle, children }) {
   return (
@@ -39,8 +39,8 @@ function InputField({ label, type = "text", value, onChange, placeholder, requir
 }
 
 // ─── MY LOANS ─────────────────────────────────────────────────────
-export function MyLoans({ onNavigate }) {
-  const totalOutstanding = LOANS.reduce((s, l) => s + l.outstanding, 0);
+export function MyLoans({ onNavigate, loans }) {
+  const totalOutstanding = (loans||[]).reduce((s, l) => s + l.outstanding, 0);
 
   return (
     <PageWrap title="My Loans" subtitle="Overview of your active loans">
@@ -48,12 +48,12 @@ export function MyLoans({ onNavigate }) {
       <div className="rounded-2xl p-5 mb-6 text-white" style={{ background: "linear-gradient(135deg,#1a1a5e,#2a3aa0)" }}>
         <p className="text-white/60 text-xs mb-1">Total Outstanding Balance</p>
         <p className="text-3xl font-black">{fmt(totalOutstanding)}</p>
-        <p className="text-white/40 text-xs mt-1">{LOANS.length} active loan{LOANS.length !== 1 ? "s" : ""}</p>
+        <p className="text-white/40 text-xs mt-1">{(loans||[]).length} active loan{(loans||[]).length !== 1 ? "s" : ""}</p>
       </div>
 
       {/* Loan cards */}
       <div className="space-y-4 mb-6">
-        {LOANS.map(loan => {
+        {(loans||[]).map(loan => {
           const paidPct = Math.round(((loan.amount - loan.outstanding) / loan.amount) * 100);
           return (
             <div key={loan.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
@@ -115,7 +115,7 @@ const LOAN_TYPES = ["Personal Loan","Home Mortgage","Auto Loan","Business Loan",
 const LOAN_TERMS = ["6 months","12 months","24 months","36 months","48 months","60 months","120 months","180 months","240 months","360 months"];
 const EMPLOYMENT = ["Employed Full-time","Employed Part-time","Self-Employed","Business Owner","Retired","Student","Unemployed"];
 
-export function ApplyLoan() {
+export function ApplyLoan({ account }) {
   const [form, setForm] = useState({ type: "", amount: "", term: "", purpose: "", employment: "", income: "", collateral: "" });
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
