@@ -1,6 +1,8 @@
 import ChatLauncher from "../components/chat/Chatlauncher.jsx";
 import { useState, useRef, useEffect } from "react";
 import { NAV_ITEMS, CURRENT_USER, NOTIFICATIONS } from "./mockData.js";
+import { auth } from "../utils/firebase/firebase.js";
+import { signOut } from "firebase/auth";
 
 // ─── Icons ───────────────────────────────────────────────────────
 const Icon = ({ name, size = 20, color = "currentColor" }) => {
@@ -134,7 +136,7 @@ function Sidebar({ activePage, onNavigate, collapsed, onClose }) {
         {/* Logout */}
         <div className="border-t border-gray-100 p-3">
           <button
-            onClick={() => { window.location.hash = "home"; }}
+            onClick={() => { return signOut(auth) }}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-gray-500 hover:bg-red-50 hover:text-red-500 transition-colors"
           >
             <Icon name="logout" size={18} />
