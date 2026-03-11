@@ -32,7 +32,6 @@ export default function PinEntry() {
       navigate("/login", { replace: true });
       return;
     }
-    // Admin should never reach PIN page — redirect to dashboard
     if (ADMIN_EMAILS.includes(user.email?.toLowerCase())) {
       navigate("/admin/chat", { replace: true });
     }
@@ -44,15 +43,12 @@ export default function PinEntry() {
     setError("");
 
     const user = auth.currentUser;
-
-    // Session expired mid-way
     if (!user) {
       setError("Session expired. Please log in again.");
       navigate("/login", { replace: true });
       return;
     }
 
-    // Validate input
     if (!pin || pin.length < 4) {
       setError("Please enter a valid PIN (4–6 digits).");
       return;
@@ -66,7 +62,15 @@ export default function PinEntry() {
         setPin("");
         return;
       }
+      // Navigate to dashboard. iOS Safari fallback: if React Router
+      // navigate() doesn't trigger a re-render after async (rare iOS edge
+      // case), force a hard redirect after 300ms.
       navigate("/dashboard", { replace: true });
+      setTimeout(() => {
+        if (window.location.pathname !== "/dashboard") {
+          window.location.replace("/dashboard");
+        }
+      }, 300);
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -92,14 +96,30 @@ export default function PinEntry() {
         body { font-family: 'DM Sans', 'Trebuchet MS', sans-serif; }
 
         .pin-page {
-          min-height: 100vh;
+          /*
+            iOS height fix: use 100% instead of 100vh.
+            html/body/#root are set to height:100% in index.css,
+            so 100% here = the actual visible viewport, not including browser chrome.
+          */
+          min-height: 100%;
           background: #e8ecf4;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: flex-start;
-          padding-top: 60px;
+          /*
+            iOS safe areas: push content below the notch and above the home indicator.
+            env() is a no-op on devices without these (returns 0).
+            Requires viewport-fit=cover in index.html.
+          */
+          padding-top: calc(60px + env(safe-area-inset-top, 0px));
+          padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+          padding-left: env(safe-area-inset-left, 0px);
+          padding-right: env(safe-area-inset-right, 0px);
           font-family: 'DM Sans', 'Trebuchet MS', sans-serif;
+          /* Momentum scroll on iOS */
+          -webkit-overflow-scrolling: touch;
+          overflow-y: auto;
         }
 
         .pin-card {
@@ -125,7 +145,7 @@ export default function PinEntry() {
           padding: 14px 20px;
           text-align: center;
           color: #333;
-          font-size: 14.5px;
+          font-size: 15px;
           font-weight: 500;
           margin-bottom: 16px;
         }
@@ -135,7 +155,12 @@ export default function PinEntry() {
           border: 1px solid #cdd2dc;
           border-radius: 4px;
           padding: 12px 16px;
-          font-size: 14.5px;
+          /*
+            iOS CRITICAL: font-size MUST be >= 16px.
+            Safari auto-zooms the entire viewport when an input < 16px is focused,
+            which shifts the layout and makes the dashboard appear off-screen after redirect.
+          */
+          font-size: 16px;
           color: #333;
           outline: none;
           background: white;
@@ -143,6 +168,9 @@ export default function PinEntry() {
           font-family: 'DM Sans', 'Trebuchet MS', sans-serif;
           letter-spacing: 0.3em;
           transition: border-color 0.2s, box-shadow 0.2s;
+          /* Remove iOS default input styling (rounded corners, inner shadow) */
+          -webkit-appearance: none;
+          appearance: none;
         }
         .pin-input:focus {
           border-color: #2563eb;
@@ -151,10 +179,11 @@ export default function PinEntry() {
         .pin-input::placeholder {
           letter-spacing: 0.05em;
           color: #aab0be;
+          font-size: 16px;
         }
 
         .pin-error {
-          font-size: 12.5px;
+          font-size: 13px;
           color: #dc2626;
           font-weight: 600;
           margin-bottom: 10px;
@@ -171,7 +200,7 @@ export default function PinEntry() {
           border: none;
           border-radius: 4px;
           padding: 13px;
-          font-size: 15px;
+          font-size: 16px;
           font-weight: 700;
           cursor: pointer;
           font-family: 'DM Sans', 'Trebuchet MS', sans-serif;
@@ -180,6 +209,9 @@ export default function PinEntry() {
           align-items: center;
           justify-content: center;
           gap: 8px;
+          /* Remove iOS button default styling */
+          -webkit-appearance: none;
+          appearance: none;
         }
         .pin-confirm-btn:hover:not(:disabled) { background: #1d4ed8; }
         .pin-confirm-btn:active:not(:disabled) { transform: scale(0.99); }
@@ -195,7 +227,7 @@ export default function PinEntry() {
           display: block;
           text-align: center;
           color: #2563eb;
-          font-size: 14px;
+          font-size: 15px;
           font-weight: 600;
           cursor: pointer;
           background: none;
@@ -204,6 +236,8 @@ export default function PinEntry() {
           width: 100%;
           padding: 2px 0;
           transition: color 0.15s;
+          -webkit-appearance: none;
+          appearance: none;
         }
         .pin-signout:hover { color: #1d4ed8; text-decoration: underline; }
 
@@ -229,7 +263,12 @@ export default function PinEntry() {
         }
 
         @media (max-width: 600px) {
-          .pin-page { padding: 20px 16px; }
+          .pin-page {
+            padding-top: calc(24px + env(safe-area-inset-top, 0px));
+            padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+            padding-left: calc(16px + env(safe-area-inset-left, 0px));
+            padding-right: calc(16px + env(safe-area-inset-right, 0px));
+          }
           .pin-card { padding: 24px 20px 22px; border-radius: 8px; }
           .pin-footer { margin-top: 24px; }
         }
@@ -277,8 +316,10 @@ export default function PinEntry() {
                 if (error) setError("");
               }}
               placeholder="Enter PIN"
-              autoFocus
               autoComplete="off"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck="false"
             />
 
             <button type="submit" className="pin-confirm-btn" disabled={loading || pin.length < 4}>

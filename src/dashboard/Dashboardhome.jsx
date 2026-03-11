@@ -1,5 +1,18 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { QUICK_ACTIONS, fmt } from "./mockData.js";
+
+// ─── UserAvatar — iOS-safe image with initials fallback ─────────
+function UserAvatar({ src, name, size = 40, className = "" }) {
+  const [failed, setFailed] = React.useState(false);
+  const initials = (name || "?").split(" ").filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join("");
+  const colors = ["#1a1a5e","#2563eb","#7c3aed","#0891b2","#059669","#d97706"];
+  const bg = colors[(name||"").split("").reduce((a,c)=>a+c.charCodeAt(0),0) % colors.length];
+  const style = { width:size, height:size, borderRadius:"50%", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center" };
+  if (!src || failed) {
+    return <div className={className} style={{...style, background:bg}}><span style={{color:"white",fontWeight:800,fontSize:size*0.36,lineHeight:1}}>{initials}</span></div>;
+  }
+  return <img src={src} alt={name||"avatar"} crossOrigin="anonymous" className={className} style={{...style,objectFit:"cover"}} onError={()=>setFailed(true)} />;
+}
 
 // ─── Balance Card ─────────────────────────────────────────────────
 function BalanceCard({ user, account, onNavigate }) {
@@ -25,15 +38,13 @@ function BalanceCard({ user, account, onNavigate }) {
     <div className="rounded-2xl overflow-hidden" style={{ background: "linear-gradient(135deg, #1a3cdd 0%, #1a1a9e 40%, #1515cc 100%)" }}>
       <div className="flex items-center justify-between px-6 pt-5 pb-3">
         <div className="flex items-center gap-3">
-          <img src={user.avatar} alt={user.firstName}
-            className="w-10 h-10 rounded-full object-cover border-2 border-white/30"
-            onError={e => { e.target.src = ""; e.target.style.display = "none"; }} />
+          <UserAvatar src={user.avatar} name={user.firstName} size={40} className="border-2 border-white/30" />
           <div>
             <p className="text-white/70 text-xs font-medium">{greeting()}</p>
             <p className="text-white font-bold text-sm">{user.firstName} {user.lastName}</p>
           </div>
         </div>
-        <p className="text-white/60 text-xs hidden sm:block">{fmtTime}</p>
+        <p className="text-white/60 text-xs sm:block w-20">{fmtTime}</p>
       </div>
 
       <div className="px-6 pb-4">

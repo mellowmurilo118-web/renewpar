@@ -1,5 +1,18 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { fmt, fmtDate } from "./mockData.js";
+
+// ─── UserAvatar — iOS-safe image with initials fallback ─────────
+function UserAvatar({ src, name, size = 40, className = "" }) {
+  const [failed, setFailed] = React.useState(false);
+  const initials = (name || "?").split(" ").filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join("");
+  const colors = ["#1a1a5e","#2563eb","#7c3aed","#0891b2","#059669","#d97706"];
+  const bg = colors[(name||"").split("").reduce((a,c)=>a+c.charCodeAt(0),0) % colors.length];
+  const style = { width:size, height:size, borderRadius:"50%", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center" };
+  if (!src || failed) {
+    return <div className={className} style={{...style,background:bg}}><span style={{color:"white",fontWeight:800,fontSize:size*0.36,lineHeight:1}}>{initials}</span></div>;
+  }
+  return <img src={src} alt={name||"avatar"} crossOrigin="anonymous" className={className} style={{...style,objectFit:"cover"}} onError={()=>setFailed(true)} />;
+}
 
 function PageWrap({ title, subtitle, children }) {
   return (
@@ -55,8 +68,7 @@ export function Profile({ user, account }) {
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-4">
         <div className="flex items-center gap-5">
           <div className="relative">
-            <img src={user.avatar} alt="avatar" className="w-20 h-20 rounded-full object-cover border-4 border-gray-100"
-              onError={e => { e.target.style.display="none"; }} />
+            <UserAvatar src={user.avatar} name={user.firstName + " " + user.lastName} size={80} className="border-4 border-gray-100" />
             <div className="absolute bottom-0 right-0 w-6 h-6 bg-[#1a1a5e] rounded-full flex items-center justify-center border-2 border-white cursor-pointer">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
             </div>

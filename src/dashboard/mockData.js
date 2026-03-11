@@ -111,7 +111,20 @@ export function useDashboardData() {
   const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
+    // iOS Safari fix: Firebase auth can be delayed by IndexedDB throttling.
+    // Set a timeout so the dashboard never stays stuck in loading state forever.
+    const authTimeout = setTimeout(() => {
+      setAuthReady(prev => {
+        if (!prev) {
+          console.warn("[renewpar] Auth timeout hit — forcing authReady. iOS IndexedDB may be throttled.");
+          setLoading(false);
+        }
+        return true;
+      });
+    }, 8000);
+
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
+      clearTimeout(authTimeout);
       if (!firebaseUser) {
         setUser(NULL_USER); setAccount(NULL_ACCOUNT);
         setTransactions([]); setCards([]); setLoans([]); setNotifications([]);
@@ -168,7 +181,10 @@ export function useDashboardData() {
       }
     });
 
-    return () => unsub();
+    return () => {
+      unsub();
+      clearTimeout(authTimeout);
+    };
   }, []);
 
   return { user, account, transactions, cards, loans, notifications, loading, isDemo, authReady };

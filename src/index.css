@@ -1,6 +1,55 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
-body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  /* 
+    iOS Safari fix: setting html to height:100% means children can use
+    height:100% to get the true visible viewport height, avoiding the
+    infamous 100vh bug where 100vh includes the browser toolbar.
+  */
+  height: 100%;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /*
+    height:100% inherits from html, giving us the correct viewport height.
+    overflow:hidden prevents body-level scroll (the dashboard manages its own).
+  */
+  height: 100%;
+  /* Prevent iOS rubber-band bounce from misaligning fixed/absolute elements */
+  overscroll-behavior: none;
+}
+
+#root {
+  /*
+    height:100% = inherits the corrected viewport height from body/html.
+    This is what .dashboard-root then inherits from.
+  */
+  height: 100%;
+}
+
+/*
+  iOS Safari: prevent auto-zoom when focusing inputs.
+  Safari zooms the page whenever an input is focused with font-size < 16px.
+  This overrides ALL inputs globally.
+*/
+input,
+select,
+textarea {
+  font-size: 16px !important;
+  /* Remove iOS default styling that overrides custom borders/radius */
+  -webkit-appearance: none;
+  appearance: none;
+}

@@ -3,7 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      viewport-fit=cover is REQUIRED for env(safe-area-inset-*) to work
+      on iPhone X and later (notch, Dynamic Island, home indicator).
+      Without it, safe-area values are always 0.
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Renew Part Bank - Financial Inclusion for All</title>
   </head>
   <body>

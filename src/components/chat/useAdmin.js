@@ -1,45 +1,29 @@
-// ─────────────────────────────────────────────────────────────────
-// useAdmin.js
-// Admin check — email whitelist only (no Firestore read).
-// Add emails to ADMIN_EMAILS to grant admin access.
-// For regular users, isAdmin is always false.
-// ─────────────────────────────────────────────────────────────────
-
 import { useState, useEffect } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../utils/firebase/firebase";
 
-// ── Admin email whitelist ─────────────────────────────────────────
-const ADMIN_EMAILS = [
-  "adminacc@gmail.com",
-];
+const ADMIN_EMAILS = ["adminacc@gmail.com"];
 
 function isAdminEmail(email) {
   if (!email) return false;
   return ADMIN_EMAILS.includes(email.trim().toLowerCase());
 }
-// ─────────────────────────────────────────────────────────────────
 
 export function useAdmin() {
-  const [isAdmin,  setIsAdmin]  = useState(false);
-  const [checking, setChecking] = useState(true);
-  const [user,     setUser]     = useState(null);
+  // Start with checking:false and detect admin from cached auth state
+  // synchronously if available — avoids blank render on iOS
+  const currentUser = auth.currentUser;
+  const [isAdmin,  setIsAdmin]  = useState(() => isAdminEmail(currentUser?.email));
+  const [checking, setChecking] = useState(!currentUser); // skip wait if already authed
+  const [user,     setUser]     = useState(currentUser);
 
   useEffect(() => {
-    const unsubAuth = onAuthStateChanged(auth, (firebaseUser) => {
-      if (!firebaseUser) {
-        setUser(null);
-        setIsAdmin(false);
-        setChecking(false);
-        return;
-      }
-
-      setUser(firebaseUser);
-      setIsAdmin(isAdminEmail(firebaseUser.email));
+    const unsub = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser || null);
+      setIsAdmin(isAdminEmail(firebaseUser?.email));
       setChecking(false);
     });
-
-    return () => unsubAuth();
+    return () => unsub();
   }, []);
 
   return { isAdmin, checking, user };

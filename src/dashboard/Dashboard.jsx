@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import DashboardLayout from "./Dashboardlayout.jsx";
 import DashboardHome from "./Dashboardhome.jsx";
@@ -9,7 +8,6 @@ import { Profile, AccountInfo, Statement, Settings, Security } from "./Account.j
 import CardsPage from "./Cards.jsx";
 import { useDashboardData } from "./mockData.js";
 
-// ─── Single data context passed to every page as props ────────────
 function PageRenderer({ page, onNavigate, data }) {
   const props = { onNavigate, ...data };
   switch (page) {
@@ -35,20 +33,10 @@ function PageRenderer({ page, onNavigate, data }) {
 
 export default function Dashboard() {
   const [page, setPage] = useState("dashboard");
-  const data = useDashboardData(); // ← single call, all components share this
+  const data = useDashboardData();
 
-  if (!data.authReady) {
-    // Waiting for Firebase auth to resolve
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 rounded-full border-4 border-[#1a1a5e] border-t-transparent animate-spin" />
-          <p className="text-gray-400 text-sm font-semibold">Loading your account...</p>
-        </div>
-      </div>
-    );
-  }
-
+  // Render layout immediately — let pages handle their own loading states
+  // Don't block on authReady to avoid iOS Firebase init delays
   return (
     <DashboardLayout activePage={page} onNavigate={setPage} data={data}>
       <PageRenderer page={page} onNavigate={setPage} data={data} />

@@ -1,5 +1,5 @@
 import ChatLauncher from "../components/chat/Chatlauncher.jsx";
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { NAV_ITEMS } from "./mockData.js";
 import { signOut } from "firebase/auth";
 import { auth } from "../utils/firebase/firebase.js";
@@ -23,12 +23,65 @@ const Icon = ({ name, size = 20, color = "currentColor" }) => {
   return icons[name] || <svg style={s} viewBox="0 0 24 24"/>;
 };
 
+// ─── UserAvatar — iOS-safe image with initials fallback ──────────
+// Fixes: Firebase Storage CORS on iOS Safari, broken relative paths,
+// and the blank-circle problem when onError just hides the image.
+function UserAvatar({ src, name, size = 40, className = "" }) {
+  const [failed, setFailed] = React.useState(false);
+
+  // Compute initials from name
+  const initials = (name || "?")
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(w => w[0].toUpperCase())
+    .join("");
+
+  // Derive a consistent background color from the name
+  const colors = ["#1a1a5e","#2563eb","#7c3aed","#0891b2","#059669","#d97706"];
+  const colorIdx = (name || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0) % colors.length;
+  const bg = colors[colorIdx];
+
+  const style = {
+    width: size,
+    height: size,
+    borderRadius: "50%",
+    flexShrink: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  };
+
+  if (!src || failed) {
+    return (
+      <div
+        className={className}
+        style={{ ...style, background: bg }}
+      >
+        <span style={{ color: "white", fontWeight: 800, fontSize: size * 0.36, lineHeight: 1 }}>
+          {initials}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={name || "avatar"}
+      crossOrigin="anonymous"
+      className={className}
+      style={{ ...style, objectFit: "cover" }}
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 // ─── Sidebar ──────────────────────────────────────────────────────
 function Sidebar({ activePage, onNavigate, collapsed, onClose }) {
   const [openSub, setOpenSub] = useState(null);
 
   useEffect(() => {
-    // auto-open sub that contains activePage
     for (const item of NAV_ITEMS) {
       if (item.sub?.some(s => s.path === activePage)) {
         setOpenSub(item.id);
@@ -49,8 +102,14 @@ function Sidebar({ activePage, onNavigate, collapsed, onClose }) {
         />
       )}
 
+      {/*
+        iOS FIX: sidebar uses position:fixed with explicit height.
+        Use the CSS class .sidebar-aside which is set to 100dvh via the
+        global style block in DashboardLayout.
+      */}
       <aside className={`
-        fixed top-0 left-0 h-full z-40 flex flex-col
+        sidebar-aside
+        fixed top-0 left-0 z-40 flex flex-col
         bg-white border-r border-gray-100
         transition-all duration-300 ease-in-out
         ${collapsed ? "-translate-x-full lg:translate-x-0 lg:w-16" : "translate-x-0 w-64"}
@@ -77,7 +136,7 @@ function Sidebar({ activePage, onNavigate, collapsed, onClose }) {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto py-4 px-2">
+        <nav className="flex-1 overflow-y-auto py-4 px-2" style={{ WebkitOverflowScrolling: "touch" }}>
           {NAV_ITEMS.map(item => (
             <div key={item.id}>
               <button
@@ -133,10 +192,10 @@ function Sidebar({ activePage, onNavigate, collapsed, onClose }) {
           ))}
         </nav>
 
-        {/* Logout */}
-        <div className="border-t border-gray-100 p-3">
+        {/* Logout — padded for iOS home indicator */}
+        <div className="border-t border-gray-100 p-3 sidebar-logout-safe">
           <button
-            onClick={() => { return signOut(auth) }}
+            onClick={() => signOut(auth)}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-gray-500 hover:bg-red-50 hover:text-red-500 transition-colors"
           >
             <Icon name="logout" size={18} />
@@ -152,8 +211,19 @@ function Sidebar({ activePage, onNavigate, collapsed, onClose }) {
 function Topbar({ onMenuClick, onNavigate, user, notifications }) {
   const [showNotifs, setShowNotifs] = useState(false);
   const [notifs, setNotifs] = useState(notifications || []);
-  const unread = notifs.filter(n => !n.read).length;
   const ref = useRef(null);
+
+  // iOS fix: useState(notifications) only runs on first render.
+  // On iOS, Firestore data loads slower so `notifications` is [] on
+  // first render and never updates the local state. Sync whenever
+  // the prop changes (e.g. after async Firestore load completes).
+  useEffect(() => {
+    if (notifications && notifications.length > 0) {
+      setNotifs(notifications);
+    }
+  }, [notifications]);
+
+  const unread = notifs.filter(n => !n.read).length;
 
   useEffect(() => {
     const fn = (e) => { if (ref.current && !ref.current.contains(e.target)) setShowNotifs(false); };
@@ -164,7 +234,15 @@ function Topbar({ onMenuClick, onNavigate, user, notifications }) {
   const typeIcon = { credit: "💚", debit: "🔴", alert: "⚠️", info: "ℹ️" };
 
   return (
-    <header className="h-[68px] bg-white border-b border-gray-100 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-20">
+    /*
+      iOS FIX: Removed "sticky top-0" — sticky inside an overflow:hidden
+      flex parent is broken on iOS Safari. The topbar is flex-shrink-0 at the
+      top of the column, so it stays fixed in place without needing sticky.
+      Safe-area-inset-top handles the notch/Dynamic Island padding.
+    */
+    <header
+      className="topbar-safe bg-white border-b border-gray-100 flex items-center justify-between px-4 sm:px-6 flex-shrink-0 z-20"
+    >
       {/* Left: hamburger */}
       <button onClick={onMenuClick} className="text-gray-500 hover:text-[#1a1a5e] transition-colors lg:hidden">
         <Icon name="menu" size={22} />
@@ -227,14 +305,14 @@ function Topbar({ onMenuClick, onNavigate, user, notifications }) {
           )}
         </div>
 
-        {/* Avatar */}
+        {/* Avatar — iOS-safe with initials fallback */}
         <button onClick={() => onNavigate("profile")} className="flex items-center gap-2 group">
           <div className="relative">
-            <img
+            <UserAvatar
               src={user?.avatar}
-              alt={user?.firstName}
-              className="w-9 h-9 rounded-full object-cover border-2 border-gray-200 group-hover:border-[#1a1a5e] transition-colors"
-              onError={e => { e.target.style.display = "none"; }}
+              name={user?.firstName}
+              size={36}
+              className="border-2 border-gray-200 group-hover:border-[#1a1a5e] transition-colors"
             />
             <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-white" />
           </div>
@@ -249,7 +327,18 @@ export default function DashboardLayout({ activePage, onNavigate, children, data
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden font-sans">
+    /*
+      iOS Safari viewport height fix strategy:
+      ─────────────────────────────────────────
+      1. html/body/root are set to height:100% in index.css
+      2. This div uses height:100% (inherits from #root which is 100%)
+         instead of height:100vh — this avoids the iOS 100vh bug where
+         100vh includes the browser chrome (address bar), making content
+         overflow and get clipped.
+      3. overflow:hidden clips children correctly once height is right.
+      4. The .dashboard-root CSS class adds dvh override for iOS 15.4+.
+    */
+    <div className="dashboard-root flex bg-gray-50 font-sans">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800;9..40,900&display=swap');
         .font-sans { font-family: 'DM Sans', 'Trebuchet MS', sans-serif !important; }
@@ -257,16 +346,69 @@ export default function DashboardLayout({ activePage, onNavigate, children, data
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
+
+        /*
+          CORE iOS FIX:
+          height:100% works because html/body/#root are 100% in index.css.
+          This avoids the 100vh iOS bug (100vh = window height including browser chrome).
+          overflow:hidden + flex children with min-height:0 ensures proper layout.
+        */
+        .dashboard-root {
+          height: 100%;
+          overflow: hidden;
+        }
+        /* iOS 15.4+: dvh = dynamic viewport height, excludes browser chrome */
+        @supports (height: 100dvh) {
+          .dashboard-root { height: 100dvh; }
+        }
+
+        /* Sidebar: full height using same strategy */
+        .sidebar-aside {
+          height: 100%;
+        }
+        @supports (height: 100dvh) {
+          .sidebar-aside { height: 100dvh; }
+        }
+
+        /* Topbar: 68px + safe area for iPhone notch/Dynamic Island */
+        .topbar-safe {
+          min-height: 68px;
+          height: calc(68px + env(safe-area-inset-top, 0px));
+          padding-top: env(safe-area-inset-top, 0px);
+        }
+
+        /* Sidebar logout: extra bottom padding for iOS home indicator */
+        .sidebar-logout-safe {
+          padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+        }
+
+        /* Main content column children need min-height:0 to flex-shrink properly on iOS */
+        .dashboard-main-col {
+          flex: 1 1 0%;
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+          min-height: 0;
+          overflow: hidden;
+        }
+
+        /* Scrollable main area — momentum scroll on iOS */
+        .dashboard-main-scroll {
+          flex: 1 1 0%;
+          min-height: 0;
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+        }
       `}</style>
 
-      {/* Sidebar */}
+      {/* Desktop Sidebar */}
       <div className="hidden lg:flex flex-shrink-0">
         <div className="w-64">
           <Sidebar activePage={activePage} onNavigate={onNavigate} collapsed={false} onClose={() => {}} />
         </div>
       </div>
 
-      {/* Mobile sidebar */}
+      {/* Mobile sidebar (overlay) */}
       <Sidebar
         activePage={activePage}
         onNavigate={onNavigate}
@@ -274,15 +416,20 @@ export default function DashboardLayout({ activePage, onNavigate, children, data
         onClose={() => setSidebarOpen(false)}
       />
 
-      {/* Main */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar onMenuClick={() => setSidebarOpen(true)} onNavigate={onNavigate} user={data?.user} notifications={data?.notifications || []} />
-        <main className="flex-1 overflow-y-auto">
+      {/* Main column */}
+      <div className="dashboard-main-col">
+        <Topbar
+          onMenuClick={() => setSidebarOpen(true)}
+          onNavigate={onNavigate}
+          user={data?.user}
+          notifications={data?.notifications || []}
+        />
+        <main className="dashboard-main-scroll">
           {children}
         </main>
       </div>
 
-      {/* Chat launcher — auto-detects admin vs user */}
+      {/* Chat launcher */}
       <ChatLauncher />
     </div>
   );
